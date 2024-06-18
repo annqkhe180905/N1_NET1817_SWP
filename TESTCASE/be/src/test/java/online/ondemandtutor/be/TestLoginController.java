@@ -13,6 +13,7 @@ import online.ondemandtutor.be.model.LoginRequest;
 import online.ondemandtutor.be.repository.AuthenticationRepository;
 import online.ondemandtutor.be.service.AuthenticationService;
 import online.ondemandtutor.be.service.TokenService;
+import online.ondemandtutor.be.validation.LoginValidation;
 import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -180,6 +181,9 @@ public class TestLoginController {
     @Mock
     private AuthenticationRepository authenticationRepository;
 
+    @Mock
+    private LoginValidation loginValidation;
+
     @InjectMocks
     private AuthenticationService authenticationService;
 
@@ -241,41 +245,161 @@ public class TestLoginController {
         //kiem tra phuong thuc generateToken cua tokenService co dc goi dung voi mockAccount tuong ung k
         verify(tokenService).generateToken(mockAccount);
     }
-    // ket qua output
+    // ket qua output se la mac dinh, bat chap input dung hay sai
 
     @Test
     public void testLogin_AccountDeleted() {
-        // Arrange
+        // chuan bi thong tin de login
         LoginRequest loginRequest = new LoginRequest("deleted@yahoo.com", "password");
+        // thiet lap rang account da bi deleted
         Account deletedAccount = new Account();
         deletedAccount.setDeleted(true);
 
         when(authenticationRepository.findAccountByEmail(loginRequest.getEmail())).thenReturn(deletedAccount);
 
-        // Act & Assert
+        // vi tai khoan da bi xoa (isDeleted = true)
+        // method nay nem ra 1 ngoai le exception
         BadRequestException exception = assertThrows(BadRequestException.class, () -> {
             authenticationService.login(loginRequest);
         });
         assertEquals("Please try another account!", exception.getMessage());
 
+        //kiem tra phuong thuc findAccountByEmail cua authenticationRepository co dc goi dung voi email tuong ung k
         verify(authenticationRepository).findAccountByEmail(loginRequest.getEmail());
+        //dam bao khong co tuong tac nao voi token
         verifyNoInteractions(tokenService);
     }
 
     @Test
     public void testLogin_InvalidCredentials() {
-        // Arrange
-        LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "invalid_password");
-
+        // chuan bi thong tin de login
+        LoginRequest loginRequest = new LoginRequest("notexisted@yahoo.com", "password");
+        // thiet lap rang account khong co trong he thong db
         when(authenticationRepository.findAccountByEmail(loginRequest.getEmail())).thenReturn(null);
 
-        // Act & Assert
+        // vi tai khoan khong ton tai truoc day trong db
+        // method nay nem ra 1 ngoai le exception
         AuthException exception = assertThrows(AuthException.class, () -> {
             authenticationService.login(loginRequest);
         });
         assertEquals("Email or password is not correct!", exception.getMessage());
 
+        //kiem tra phuong thuc findAccountByEmail cua authenticationRepository co dc goi dung voi email tuong ung k
         verify(authenticationRepository).findAccountByEmail(loginRequest.getEmail());
+        //dam bao khong co tuong tac nao voi token
         verifyNoInteractions(tokenService);
+    }
+
+    @Test
+    public void testLogin_InvalidEmail() {
+        String invalidEmail = " invalid_email";
+        assertFalse(loginValidation.isValidUsername(invalidEmail));
+
+        LoginRequest loginRequest = new LoginRequest(invalidEmail, "password");
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            authenticationService.login(loginRequest);
+        });
+
+//        verifyNoInteractions(authenticationManager);
+//        verifyNoInteractions(authenticationRepository);
+//        verifyNoInteractions(tokenService);
+    }
+
+    @Test
+    public void testLogin_ValidEmail() {
+        String validEmail = "annqk@fpt.edu.vn";
+        //assertFalse kiem tra dieu kien co thoa man hay khong
+        //boi vi Validation kiem tra xem email co thoa man hay khong
+        // neu Validation dua ra cac truong hop sai
+        // o day ta phai dung assertTrue de check xem Validation co tra ve false hay khong
+        assertTrue(loginValidation.isValidUsername(validEmail));
+
+        LoginRequest loginRequest = new LoginRequest(validEmail, "password");
+        Account mockAccount = Account.builder()
+                .email("annqk@fpt.edu.vn")
+                .password("password")
+                .fullname("Nguyen Quang Khanh An")
+                .role(RoleEnum.STUDENT)
+                .phone("1234567890")
+                .isDeleted(false)
+                .build();
+
+//        Account mockAccount = new Account("tet@yahoo.com", "password", "Nguyen Quang Khanh An", "1234567890", RoleEnum.STUDENT, false);
+//        System.out.println(mockAccount.getEmail());
+
+        when(authenticationRepository.findAccountByEmail(loginRequest.getEmail())).thenReturn(mockAccount);
+        when(tokenService.generateToken(mockAccount)).thenReturn("mocked_token");
+
+        AccountResponse response = authenticationService.login(loginRequest);
+
+        assertNotNull(response);
+        assertEquals(mockAccount.getEmail(), response.getEmail());
+        assertEquals("mocked_token", response.getToken());
+        assertEquals(mockAccount.getFullname(), response.getFullname());
+        assertEquals(mockAccount.getRole(), response.getRole());
+        assertEquals(mockAccount.getId(), response.getId());
+        assertEquals(mockAccount.getPhone(), response.getPhone());
+
+        verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(),
+                loginRequest.getPassword()
+        ));
+        verify(authenticationRepository).findAccountByEmail(loginRequest.getEmail());
+        verify(tokenService).generateToken(mockAccount);
+    }
+
+    @Test
+    public void testLogin_InvalidPassword() {
+        String validEmail = "annqkhe180905@fpt.edu.vn";
+        String invalidPassword = "short";
+        assertFalse(loginValidation.isValidPassword(invalidPassword));
+
+        LoginRequest loginRequest = new LoginRequest(validEmail, invalidPassword);
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            authenticationService.login(loginRequest);
+        });
+
+//        verifyNoInteractions(authenticationManager);
+//        verifyNoInteractions(authenticationRepository);
+//        verifyNoInteractions(tokenService);
+    }
+
+    @Test
+    public void testLogin_ValidPassword() {
+        String validPassword = "String123!";
+
+        assertTrue(loginValidation.isValidPassword(validPassword));
+
+        LoginRequest loginRequest = new LoginRequest("annqkhe180905@fpt.edu.vn", validPassword);
+        Account mockAccount = Account.builder()
+                .email("annqkhe180905@fpt.edu.vn")
+                .password("String123!")
+                .fullname("Nguyen Quang Khanh An")
+                .role(RoleEnum.STUDENT)
+                .phone("1234567890")
+                .isDeleted(false)
+                .build();
+
+        when(authenticationRepository.findAccountByEmail(loginRequest.getEmail())).thenReturn(mockAccount);
+        when(tokenService.generateToken(mockAccount)).thenReturn("mocked_token");
+
+        AccountResponse response = authenticationService.login(loginRequest);
+
+        assertNotNull(response);
+        assertEquals(mockAccount.getEmail(), response.getEmail());
+        assertEquals("mocked_token", response.getToken());
+        assertEquals(mockAccount.getFullname(), response.getFullname());
+        assertEquals(mockAccount.getRole(), response.getRole());
+        assertEquals(mockAccount.getId(), response.getId());
+        assertEquals(mockAccount.getPhone(), response.getPhone());
+
+        verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(),
+                loginRequest.getPassword()
+        ));
+        verify(authenticationRepository).findAccountByEmail(loginRequest.getEmail());
+        verify(tokenService).generateToken(mockAccount);
     }
 }
