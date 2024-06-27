@@ -1,5 +1,6 @@
 package online.ondemandtutor.be.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
