@@ -68,27 +68,63 @@ public class updateProfileTests {
     }
 
     @Test
-    public void TestDuplicatePhone() {
+    public void TestDuplicatePhone_HappyCase() {
+        //HappyCase --> No Phone Number duplication detected
+
         UpdateRequest updateRequest = new UpdateRequest();
+        //Request an Update with duplicated phone number
         updateRequest.setPhone("3928128379");
         updateRequest.setFullname("Khai Phan Quang");
 
+        //Create an account that exist in Database
         Account genericAccount = new Account();
         genericAccount.setPhone("3928128379");
         genericAccount.setFullname("Phan Quang Khai");
 
+        //Create an account that will be updated
         Account mockAccount = new Account();
         mockAccount.setPhone("3213213213213");
         mockAccount.setFullname("Nguyen Ca No");
 
         when(authenticationService.getCurrentAccount()).thenReturn(mockAccount);
-        when(authenticationRepository.findAccountByPhone(updateRequest.getPhone())).thenReturn(genericAccount);
+        when(accountService.findAccountbyPhone (updateRequest.getPhone()) ).thenReturn(genericAccount);
 
         BadRequestException exception = assertThrows(BadRequestException.class, () -> {
             accountService.updateAccount(updateRequest);
         });
 
         assertEquals("Phone number is already in use!", exception.getMessage());
+
+    }
+
+    @Test
+    public void TestDuplicatePhone_UnhappyCase() {
+        //unhappyCase --> Phone Number duplication detected
+
+        UpdateRequest updateRequest = new UpdateRequest();
+        //Request an Update with duplicated phone number
+        updateRequest.setPhone("09392738273");
+        updateRequest.setFullname("Khai Phan Quang");
+
+        //Create an account that exist in Database
+        Account genericAccount = new Account();
+        genericAccount.setPhone("3928128379");
+        genericAccount.setFullname("Phan Quang Khai");
+
+        //Create an account that will be updated
+        Account mockAccount = new Account();
+        mockAccount.setPhone("3213213213213");
+        mockAccount.setFullname("Nguyen Ca No");
+
+        when(authenticationService.getCurrentAccount()).thenReturn(mockAccount);
+        when(accountService.findAccountbyPhone (updateRequest.getPhone()) ).thenReturn(genericAccount);
+
+        BadRequestException exception = assertThrows(BadRequestException.class, () -> {
+            accountService.updateAccount(updateRequest);
+        });
+
+        assertEquals("Phone number is already in use!", exception.getMessage());
+
 
     }
 }

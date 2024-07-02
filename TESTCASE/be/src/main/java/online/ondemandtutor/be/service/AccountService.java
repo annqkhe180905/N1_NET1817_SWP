@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class AccountService {
@@ -92,5 +93,9 @@ public class AccountService {
         else {
             throw new BadRequestException("Account is not found!");
         }
+    }
+
+    public Account findAccountbyPhone(String phone){
+        return authenticationRepository.findAccountByPhone(phone);
     }
 }
