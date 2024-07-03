@@ -44,3 +44,23 @@
 | Dũng       | UC_05, UC_06,    |
 | Khải       | UC_07, UC_08,         |
 | Nam       | UC_09, UC_10,    |
+
+## TABLE 3: Phân Công Member Làm US nào trong SPRINT2
+
+| Member | US need to do |
+|------------|----------|
+| An      | UC_11, UC_12,    |
+| Tuấn       | UC_13, UC_14,         |
+| Dũng       | UC_15, UC_16,    |
+| Khải       | UC_17, UC_18,         |
+| Nam       | UC_19, UC_20,    |
+
+## TABLE 4: Phân Công Member Làm US nào trong SPRINT3
+
+| Member | US need to do |
+|------------|----------|
+| An      | UC_21, UC_22,    |
+| Tuấn       | UC_23, UC_24,         |
+| Dũng       | UC_25, UC_26,    |
+| Khải       | UC_27, UC_28,         |
+| Nam       | UC_29, UC_30,    |
